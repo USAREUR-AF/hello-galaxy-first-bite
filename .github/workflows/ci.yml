@@ -1,0 +1,86 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shape:
+    name: scripts, tables and structure are well formed
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: shellcheck the scripts
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          # SC1090/SC1091: drivers source the lib at runtime. SC2034: cross-file globals.
+          shellcheck -e SC1090,SC1091,SC2034 lib/hello-bite.sh steps/*/run.sh bin/hello-bite
+          shellcheck fabric/make-certs.sh
+
+      - name: every step has a README and an executable run.sh
+        run: |
+          rc=0
+          for d in steps/*/; do
+            [ -f "$d/README.md" ] || { echo "missing README: $d"; rc=1; }
+            [ -x "$d/run.sh" ]   || { echo "not executable: $d/run.sh"; rc=1; }
+            bash -n "$d/run.sh"  || { echo "syntax error: $d/run.sh"; rc=1; }
+          done
+          for f in tools/*.py device/*.py fabric/make-certs.sh bin/hello-bite; do
+            [ -x "$f" ] || { echo "not executable: $f"; rc=1; }
+          done
+          exit $rc
+
+      - name: python compiles
+        run: |
+          rc=0
+          for f in $(git ls-files '*.py'); do python3 -m py_compile "$f" || rc=1; done
+          exit $rc
+
+      - name: the buoy's first datagrams are the document's examples A.2 and A.3
+        run: |
+          python3 device/buoy.py --to 127.0.0.1:9 --count 3 --interval 0 > sent.jsonl
+          grep -q '"bytes": "02067065ff833ad18e992730"' sent.jsonl
+          grep -q '"bytes": "030870661a865979edf78e9643879ff1"' sent.jsonl
+          grep -q '0206 7065 ff83 3ad1 8e99 2730' icd/HB-ICD-001-A.md
+          grep -q '0308 7066 1a86 5979 edf7 8e96 4387 9ff1' icd/HB-ICD-001-A.md
+
+      - name: the pinned first-bite commit is a full SHA
+        run: grep -Eq '^[0-9a-f]{40}$' FIRST_BITE_REF
+
+  steps:
+    name: build first-bite at the pinned commit and run every step
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: build the image with the goat feature (it runs every step)
+        run: HB_JOBS="$(nproc)" bin/hello-bite build --goat
+
+      - name: step 1 — first-bite alone
+        run: NO_COLOR=1 bin/hello-bite 1-alone
+
+      - name: step 2 — a tap on a link you cannot change
+        run: NO_COLOR=1 bin/hello-bite 2-tap
+
+      - name: step 3 — from an interface document to a dictionary
+        run: NO_COLOR=1 bin/hello-bite 3-dictionary
+
+      - name: step 4 — onto a goat fabric (stand-in router)
+        run: NO_COLOR=1 bin/hello-bite 4-fabric
+
+      - name: step 5 — Cursor-on-Target
+        run: NO_COLOR=1 bin/hello-bite 5-cot
+
+      - name: container logs
+        if: failure()
+        run: |
+          for name in hb-tap hb-shore hb-sub hb-router hb-goat-sub; do
+            echo "== $name"; docker logs "$name" 2>&1 | tail -n 40 || true
+          done
