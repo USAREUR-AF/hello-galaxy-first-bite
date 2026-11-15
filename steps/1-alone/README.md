@@ -100,7 +100,6 @@ identifier is an address or a clock name depending on the stratum.
 The image is a convenience. first-bite builds with `make build` on Linux and
 macOS, given a Rust toolchain, a C compiler, CMake and the libpcap headers;
 its [README](https://github.com/USAREUR-AF/first-bite#try-it) has the same
-three commands against a local build. `v1.0.1-rc.1` is a release candidate;
-for a published release,
-[deployment.md](https://github.com/USAREUR-AF/first-bite/blob/main/docs/deployment.md)
+three commands against a local build. `v1.1.0` is a published release;
+[deployment.md](https://github.com/USAREUR-AF/first-bite/blob/v1.1.0/docs/deployment.md)
 is how to install it.
