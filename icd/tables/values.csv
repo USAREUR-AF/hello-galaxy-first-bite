@@ -1,0 +1,4 @@
+interface,message,field,value,label
+BUOY,Status,operating_mode,0,Standby
+BUOY,Status,operating_mode,1,Reporting
+BUOY,Status,operating_mode,2,Low Power

@@ -1,0 +1,4 @@
+interface,message,type_id,defined,description,declared_bits,source_section,source_table,note
+BUOY,Status,1,yes,Sent every ten seconds while the buoy is powered.,64,5.2,5-2,
+BUOY,Sea State,2,yes,Sent every minute with the buoy's measurements of the water and the air.,96,5.3,5-3,
+BUOY,Position,3,yes,"Sent every minute, and at once when the mooring alarm is raised.",128,5.4,5-4,

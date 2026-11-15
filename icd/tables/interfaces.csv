@@ -1,0 +1,2 @@
+interface,description,port,network,transport,type_start,type_stop,length_start,length_stop,word_bits,bit0,first_word,first_bit,word_order,source_section
+BUOY,Harbour buoy to shore station: status and measurements.,47200,ip,udp,0,8,8,16,16,lsb,1,0,big,2
