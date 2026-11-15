@@ -13,7 +13,10 @@ hb_note "run against: a stand-in. A stock Zenoh 1.9.0 router with goat's slot-po
 WORK="$HB_RUN/4"; rm -rf "$WORK"; mkdir -p "$WORK"
 slot() { printf 'hello-galaxy-first-bite:%s' "$1" | "$HB_ENGINE" run --rm -i "$HB_IMAGE" sha256sum | cut -c1-32; }
 PUB="$(slot 0)"; READER="$(slot 1)"
-ENDPOINT="tls/localhost:$HB_ROUTER_PORT"
+# The address, not the name localhost: the router's port is published on
+# 127.0.0.1 only, and where localhost resolves to ::1 first a Zenoh client
+# tries that address alone. The router's certificate carries the address.
+ENDPOINT="tls/127.0.0.1:$HB_ROUTER_PORT"
 
 hb_step "The stand-in goatnet: an authority, two slots and a router"
 hb_say "A slot is a certificate common name with a write rule on <uuid>/** already in the router."
@@ -24,10 +27,9 @@ hb_in sh /repo/fabric/make-certs.sh /work/4/tls "$PUB" "$READER" | hb_show
 sed "s/__PUBLISHER__/$PUB/g; s/__READER__/$READER/g" "$HB_ROOT/fabric/router.json5.tmpl" >"$WORK/tls/router.json5"
 hb_cmd "docker run -d --name hb-router -p 127.0.0.1:$HB_ROUTER_PORT:7447 -v .run/4/tls:/tls:ro eclipse/zenoh:1.9.0@sha256:1579… -c /tls/router.json5"
 hb_start hb-router -p "127.0.0.1:$HB_ROUTER_PORT:7447" -v "$WORK/tls:/tls:ro" "$HB_ROUTER_IMAGE" -c /tls/router.json5
-hb_wait_log hb-router "zenohd" 20 || true
-sleep 3
-[ "$("$HB_ENGINE" inspect -f '{{.State.Running}}' hb-router 2>/dev/null)" = true ] || {
-  "$HB_ENGINE" logs hb-router 2>&1 | tail -n 20 >&2; hb_die "the router did not stay up"; }
+hb_wait_port 127.0.0.1 "$HB_ROUTER_PORT" 30 || {
+  "$HB_ENGINE" logs hb-router 2>&1 | tail -n 20 >&2; hb_die "the router is not accepting connections on 127.0.0.1:$HB_ROUTER_PORT"; }
+hb_note "the router accepts connections on 127.0.0.1:$HB_ROUTER_PORT"
 
 hb_step "What a goatnet's administrator hands over: the onboarding archive"
 mkdir -p "$WORK/bundle"

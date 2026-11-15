@@ -124,6 +124,19 @@ hb_wait_exit() {
   done
   return 1
 }
+# hb_wait_port <address> <port> <seconds>: wait until a TCP connection is accepted.
+hb_wait_port() {
+  "$HB_ENGINE" run --rm --network host "$HB_IMAGE" python3 -c '
+import socket, sys, time
+deadline = time.monotonic() + float(sys.argv[3])
+while time.monotonic() < deadline:
+    try:
+        socket.create_connection((sys.argv[1], int(sys.argv[2])), timeout=1).close()
+        sys.exit(0)
+    except OSError:
+        time.sleep(0.2)
+sys.exit(1)' "$1" "$2" "$3"
+}
 hb_cleanup() {
   local name
   for name in ${HB_CONTAINERS[@]+"${HB_CONTAINERS[@]}"}; do "$HB_ENGINE" rm -f "$name" >/dev/null 2>&1 || true; done
