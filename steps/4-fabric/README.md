@@ -29,7 +29,7 @@ A stand-in, not a goatnet.
 | Router configuration | [`fabric/router.json5.tmpl`](../../fabric/router.json5.tmpl): the shape goat renders for a slot-pool router, with two slots and memory storage | rendered by goatcore's `goat-zenoh` role, with the whole slot pool and persistent storage |
 | Certificate authority | [`fabric/make-certs.sh`](../../fabric/make-certs.sh): a throwaway root, valid two days | the goatnet's own; its portal mints your certificate |
 | Onboarding archive | a directory with the four files `mind goat init` reads | a `goat-onboarding-<prefix>-<stamp>.tar.gz` from the portal |
-| Reaching the router | a port on this machine's loopback | over the goatnet's mesh only; the host must be enrolled first |
+| Reaching the router | port 17447 of this machine's loopback, by address: `tls/127.0.0.1:17447` | over the goatnet's mesh only; the host must be enrolled first |
 | Subscriber | the released `goat` CLI, with a second slot's certificate in a profile directory | the same CLI, with a context collected from the goatnet |
 
 What it shows is therefore what first-bite does toward a router with goat's
@@ -56,10 +56,10 @@ goatnet.
     │   ok    configuration      slot d0d9ed2b5013cdcb04f987773f51d77f
     │   ok    private key        /work/4/bundle/d0d9ed2b5013cdcb04f987773f51d77f-key.pem is readable by its owner only
     │   ok    certificate name   common name d0d9ed2b5013cdcb04f987773f51d77f
-    │   ok    certificate dates  valid until 2026-11-17 12:11 UTC (1 days from now)
+    │   ok    certificate dates  valid until 2026-11-17 12:56 UTC (1 days from now)
     │   ok    root certificate   /work/4/bundle/ca-root.pem verifies the certificate
     │
-    │ router        tls/localhost:17447 (client mode, mutual TLS, host name verified)
+    │ router        tls/127.0.0.1:17447 (client mode, mutual TLS, host name verified)
     │ session       identifier d0d9ed2b5013cdcb04f987773f51d77f (the slot UUID)
     │
     │ the router must grant the certificate common name d0d9ed2b5013cdcb04f987773f51d77f:
@@ -78,7 +78,7 @@ goatnet.
 
 [4] Confirm the router delivers what this certificate writes
     $ mind goat probe --config .run/4/goat.yml
-    │ delivered: a sample put on d0d9ed2b5013cdcb04f987773f51d77f/health/shims/harbour-buoy/tap-1 came back through the router after 1 ms
+    │ delivered: a sample put on d0d9ed2b5013cdcb04f987773f51d77f/health/shims/harbour-buoy/tap-1 came back through the router after 251 ms
 
 [5] A subscriber on the fabric: the released goat CLI, with the reader's certificate
     $ tools/fetch-goat-cli.py fabric/goat-cli.pin .run/4/goat
@@ -87,19 +87,19 @@ goatnet.
 
 [6] The link of step 2, with first-bite publishing to the fabric
     $ GOAT_CONFIG_PATH=.run/4/goat.yml SUBSCRIBER_CONFIG_PATH=.run/4/subscribers.yml mind hblink0 --dictionary dictionaries/harbour-buoy --filter "udp port 47200"
-    │ goat: joined tls/localhost:17447 as d0d9ed2b5013cdcb04f987773f51d77f; Zenoh session d0d9ed2b5013cdcb04f987773f51d77f
+    │ goat: joined tls/127.0.0.1:17447 as d0d9ed2b5013cdcb04f987773f51d77f; Zenoh session d0d9ed2b5013cdcb04f987773f51d77f
     │ goat: announced on d0d9ed2b5013cdcb04f987773f51d77f/services/shims/harbour-buoy/tap-1/announce and declared 3 schema(s) under attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/**
     │ goat: the router delivers this publisher's samples (read back on d0d9ed2b5013cdcb04f987773f51d77f/health/shims/harbour-buoy/tap-1 after 0 ms)
     $ device/buoy.py --to 198.51.100.20:47200 --count 9
     buoy 7: sent 9 datagrams to 198.51.100.20:47200
 
 [7] What the goat CLI received
-    │ listening on `d0d9ed2b5013cdcb04f987773f51d77f/telemetry/**` via tls/localhost:17447 — stopping after 9 event(s). Ctrl-C to stop.
-    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status {"timestamp":{"secs_since_epoch":1794744727,…
-    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state {"timestamp":{"secs_since_epoch":1794744727,…
-    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position {"timestamp":{"secs_since_epoch":1794744727,…
+    │ listening on `d0d9ed2b5013cdcb04f987773f51d77f/telemetry/**` via tls/127.0.0.1:17447 — stopping after 9 event(s). Ctrl-C to stop.
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status {"timestamp":{"secs_since_epoch":1794747409,…
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state {"timestamp":{"secs_since_epoch":1794747409,…
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position {"timestamp":{"secs_since_epoch":1794747409,…
     │ …
-    │ done after 5s — 9 event(s) on `d0d9ed2b5013cdcb04f987773f51d77f/telemetry/**` (the requested 9)
+    │ done after 3s — 9 event(s) on `d0d9ed2b5013cdcb04f987773f51d77f/telemetry/**` (the requested 9)
 
 [8] The announcement, the heartbeat and the schema declarations, read from the router's storage
     $ mind goat watch 'd0d9ed2b5013cdcb04f987773f51d77f/services/**' --stored --payload --config .run/4/reader.yml
@@ -109,9 +109,9 @@ goatnet.
     │ d0d9ed2b5013cdcb04f987773f51d77f/health/shims/harbour-buoy/tap-1  application/json  252 bytes
     │ {"class":"harbour-buoy","instance":"tap-1","records_failed":0,"records_not_decoded":0,"records_published":9,"site":"harbour-3","started":"…","status":"ok","time":"…","version":"0.1.0"}
     $ mind goat watch 'attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/**' --stored --config .run/4/reader.yml
-    │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state  application/json  4137 bytes
-    │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status  application/json  3995 bytes
     │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position  application/json  4104 bytes
+    │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status  application/json  3995 bytes
+    │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state  application/json  4137 bytes
 
 [9] Verify
     ✓ offline, the certificate, its name, its dates and its root are in order

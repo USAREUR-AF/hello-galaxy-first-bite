@@ -8,7 +8,7 @@
 # has a complete authority to run against with no goatnet. It writes, into
 # <directory>:
 #   ca-root.pem, ca.key          a throwaway root, valid two days
-#   router-cert.pem, -key.pem    the router's certificate, for the name localhost
+#   router-cert.pem, -key.pem    the router's certificate, for 127.0.0.1 and the name localhost
 #   <slot>-cert.pem, -key.pem    one client certificate per slot UUID, whose
 #                                common name is the UUID, as goat mints them
 set -eu
@@ -17,7 +17,7 @@ mkdir -p "$dir"; cd "$dir"
 
 openssl ecparam -name prime256v1 -genkey -noout -out ca.key 2>/dev/null
 openssl req -x509 -new -key ca.key -sha256 -days 2 -out ca-root.pem \
-  -subj "/CN=hello-galaxy stand-in authority" \
+  -subj "/CN=hello-galaxy-first-bite stand-in authority" \
   -addext "basicConstraints=critical,CA:TRUE" -addext "keyUsage=critical,keyCertSign,cRLSign" 2>/dev/null
 
 printf 'basicConstraints=CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=clientAuth\n' >client.ext
