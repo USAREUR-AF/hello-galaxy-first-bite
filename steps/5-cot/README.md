@@ -65,8 +65,8 @@ position and the subpub does not subscribe to them.
 | `detail` | empty |
 
 The event goes to a ZeroMQ socket. None of the Hello Galaxy repositories has
-a Cursor-on-Target consumer to send it to, so this step prints it; putting it
-in front of a TAK server is a subscriber on port 12001 that forwards
-`cot_xml_string`. On a node that runs Open Billie for the same sensor, leave
+a Cursor-on-Target consumer to send it to, so this step prints it. first-bite's
+`udp` and `tcp` outputs deliver the same event to a TAK server or to TAK
+clients: [cot-to-tak.md](https://github.com/USAREUR-AF/first-bite/blob/v1.1.0/docs/cot-to-tak.md). On a node that runs Open Billie for the same sensor, leave
 this transform off for that sensor's track message: both would draw a marker.
 [docs/00-which-tool.md](../../docs/00-which-tool.md) has the comparison.

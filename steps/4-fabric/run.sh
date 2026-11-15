@@ -117,8 +117,13 @@ printf '%s\n' "$HEALTH" | cut -c1-400 | hb_show
 hb_cmd "mind goat watch 'attest/schema/$PUB/**' --stored --config .run/4/reader.yml"
 SCHEMAS="$(hb_host mind goat watch "attest/schema/$PUB/**" --stored --seconds 5 --config /work/4/reader.yml 2>&1)"
 printf '%s\n' "$SCHEMAS" | hb_show
-"$HB_ENGINE" stop -t 10 hb-tap >/dev/null 2>&1 || true
+
+hb_step "Stop first-bite: the sink delivers what was published, then mind exits"
+hb_say "On a stop signal mind stops capturing, gives each sink up to --drain-seconds (default 30) to deliver, and reports per sink."
+hb_cmd "docker stop hb-tap"
+"$HB_ENGINE" stop -t 40 hb-tap >/dev/null 2>&1 || true
 TAP="$("$HB_ENGINE" logs hb-tap 2>&1)"
+printf '%s\n' "$TAP" | grep -o 'sink fabric: .*\|done: .*' | hb_show
 
 hb_step "Verify"
 PREFIX="$PUB/telemetry/harbour-buoy/harbour-3/buoy"
@@ -132,5 +137,6 @@ hb_assert_contains "the goat CLI received a Sea State record" "$GOATSUB" "$PREFI
 hb_assert_contains "the goat CLI received a Position record" "$GOATSUB" "$PREFIX/position"
 hb_assert_contains "the announcement is stored under the slot" "$ANNOUNCE" "$PUB/services/shims/harbour-buoy/tap-1/announce"
 hb_assert_contains "the heartbeat counts the records published" "$HEALTH" "\"records_published\":$COUNT"
+hb_assert_contains "on stopping, the goat sink had delivered every record" "$TAP" "sink fabric: $COUNT delivered, 0 failed, 0 abandoned"
 hb_assert_contains "a schema is declared for each record key" "$SCHEMAS" "attest/schema/$PREFIX/position"
 hb_done

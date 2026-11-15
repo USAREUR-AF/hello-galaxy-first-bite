@@ -86,10 +86,11 @@ value the buoy printed when it encoded it.
     ✓ every decoded value is the value the buoy encoded
 ```
 
-A scaled value is a binary floating-point number, so `44.5012345` is
-published as `44.501234499999995`: the nearest double to 445012345 × 0.0000001.
-The comparison is to nine significant digits, as first-bite's own vectors
-compare.
+A record carries each value as the type its field declares: a scaled value
+as the decimal the scale gives (`44.5012345`), a flag as `true` or `false`, a
+label as text. The comparison takes numbers to nine significant digits, as
+first-bite's own vectors compare. `FIRST_BITE_RECORD_VERSION=1` makes `mind`
+publish every value as text instead, and the comparison accepts that form too.
 
 The dictionary that turns the bytes into those names is
 `dictionaries/harbour-buoy`. [Step 3](../3-dictionary/) builds it from the
