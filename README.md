@@ -82,7 +82,7 @@ first-bite itself builds and captures on macOS; its
 
 | What | Pin | Change it in |
 |---|---|---|
-| first-bite | commit `095d8229452aaafae76b92ca9f55d54cad8e14d6`, which is the release candidate `v1.0.1-rc.1` | [`FIRST_BITE_REF`](FIRST_BITE_REF) holds the commit, not the tag name, so a moved tag cannot change what is built; put the commit of the next release there |
+| first-bite | commit `d65b0389013ca36e14d27b5e802d16e9390f7f5f`, which is the release `v1.1.0` | [`FIRST_BITE_REF`](FIRST_BITE_REF) holds the commit, not the tag name, so a moved tag cannot change what is built; put the commit of the next release there |
 | Build and runtime base images | `rust:1.100.0-trixie` and `debian:trixie-slim` by digest, the two first-bite's own Dockerfile uses | [`image/Dockerfile`](image/Dockerfile) |
 | Zenoh router | `eclipse/zenoh:1.9.0` by digest, the image goat runs and hello-galaxy-zagros-pod pins | `HB_ROUTER_IMAGE` in [`lib/hello-bite.sh`](lib/hello-bite.sh) |
 | `goat` CLI | release `goat-cli-v0.5.14` of goatcore, by SHA-256 | [`fabric/goat-cli.pin`](fabric/goat-cli.pin) |

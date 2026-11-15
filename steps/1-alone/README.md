@@ -29,7 +29,17 @@ bin/hello-bite 1-alone
     │   "fields": {
     │     "leap_indicator": "no warning",
     │     "mode": "server",
-    │     …
+    │     "origin_timestamp_fraction": 0.25,
+    │     "origin_timestamp_seconds": 3977467200,
+    │     "poll": 6,
+    │     "precision": -23,
+    │     "receive_timestamp_fraction": 0.26171875,
+    │     "receive_timestamp_seconds": 3977467200,
+    │     "reference_id": "c0000201",
+    │     "reference_timestamp_fraction": 0.75,
+    │     "reference_timestamp_seconds": 3977467136,
+    │     "root_delay": 0.0234375,
+    │     "root_dispersion": 0.041015625,
     │     "stratum": 2,
     │     "transmit_timestamp_fraction": 0.263671875,
     │     "transmit_timestamp_seconds": 3977467200,
@@ -40,14 +50,20 @@ bin/hello-bite 1-alone
     │ }
 
 [3] Replay a capture through the whole pipeline and read the record socket
+    mind reads each frame of the file, finds the dictionary's interface by UDP port, decodes the
+    payload and publishes one record on a ZeroMQ PUB socket. A subscriber prints topic and fields.
     $ tools/zmq-sub.py tcp://127.0.0.1:12000 --count 10 --field message &
     $ mind --pcap-file /usr/share/first-bite/examples/ntp.pcap --dictionary /usr/share/first-bite/dictionaries/ntp
-    │ NTP/broadcast  {"leap_indicator":"no warning","mode":"broadcast","origin_timestamp_fraction":"0",…
-    │ NTP/client  {"leap_indicator":"no warning","mode":"client","origin_timestamp_fraction":"0",…
+    │ NTP/broadcast  {"leap_indicator":"no warning","mode":"broadcast","origin_timestamp_fraction":0.0,"origin_timestamp_seconds":0,"poll":6,"precision":-22
+    │ NTP/client  {"leap_indicator":"no warning","mode":"client","origin_timestamp_fraction":0.0,"origin_timestamp_seconds":0,"poll":0,"precision":0,"receiv
     │ NTP/NTP control message  {}
     │ NTP/7  {}
-    │ NTP/server  {"leap_indicator":"unknown (clock unsynchronized)","mode":"server",…
-    │ …
+    │ NTP/server  {"leap_indicator":"unknown (clock unsynchronized)","mode":"server","origin_timestamp_fraction":0.25,"origin_timestamp_seconds":3977467200,
+    │ NTP/server  {"leap_indicator":"no warning","mode":"server","origin_timestamp_fraction":0.25,"origin_timestamp_seconds":3977467200,"poll":6,"precision"
+    │ NTP/server  {"leap_indicator":"no warning","mode":"server","origin_timestamp_fraction":0.25,"origin_timestamp_seconds":3977467200,"poll":6,"precision"
+    │ NTP/server  {"leap_indicator":"no warning","mode":"server","origin_timestamp_fraction":0.25,"origin_timestamp_seconds":3977467200,"poll":6,"precision"
+    │ NTP/symmetric active  {"leap_indicator":"last minute of the day has 61 seconds","mode":"symmetric active","origin_timestamp_fraction":1.52587890625e-0
+    │ NTP/symmetric passive  {"leap_indicator":"last minute of the day has 59 seconds","mode":"symmetric passive","origin_timestamp_fraction":0.499999999767
     │ done: 10 frames, 10 records, 10 decoded, 0 not UDP or TCP, 0 malformed
 
 [4] Verify
@@ -57,6 +73,8 @@ bin/hello-bite 1-alone
     ✓ ten records arrived on the ZeroMQ socket
     ✓ a record is published on <interface>/<message>
     ✓ its fields carry the dictionary's labels
+
+✓ step complete — every assertion held.
 ```
 
 Each message on the socket is `<topic>|<JSON>`, and the topic is
@@ -100,7 +118,6 @@ identifier is an address or a clock name depending on the stratum.
 The image is a convenience. first-bite builds with `make build` on Linux and
 macOS, given a Rust toolchain, a C compiler, CMake and the libpcap headers;
 its [README](https://github.com/USAREUR-AF/first-bite#try-it) has the same
-three commands against a local build. `v1.0.1-rc.1` is a release candidate;
-for a published release,
-[deployment.md](https://github.com/USAREUR-AF/first-bite/blob/main/docs/deployment.md)
+three commands against a local build. `v1.1.0` is a published release;
+[deployment.md](https://github.com/USAREUR-AF/first-bite/blob/v1.1.0/docs/deployment.md)
 is how to install it.

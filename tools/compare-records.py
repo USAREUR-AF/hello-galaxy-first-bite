@@ -6,7 +6,10 @@
 <buoy output> is the JSON lines of device/buoy.py; <subscriber output> is the
 `<topic>  <fields>` lines of tools/zmq-sub.py --field message. Records are
 matched by sequence number, and every value the buoy encoded must be the value
-decoded: numbers to nine significant digits, booleans and labels as text.
+decoded: numbers to nine significant digits, booleans and labels equal. A
+version 2 record carries numbers and booleans as JSON numbers and booleans; a
+version 1 record (FIRST_BITE_RECORD_VERSION=1) carries them as text, and is
+compared the same way.
 Prints one line per record and a count; exit status 1 on any difference.
 Python standard library only.
 """
@@ -14,13 +17,15 @@ import json
 import sys
 
 
-def same(sent, decoded: str) -> bool:
+def same(sent, decoded) -> bool:
     if isinstance(sent, bool):
-        return decoded == ("true" if sent else "false")
+        return decoded is sent or decoded == ("true" if sent else "false")
     if isinstance(sent, (int, float)):
+        if isinstance(decoded, bool):
+            return False
         try:
             return float(f"{float(decoded):.9g}") == float(f"{float(sent):.9g}")
-        except ValueError:
+        except (TypeError, ValueError):
             return False
     return decoded == sent
 
@@ -41,7 +46,7 @@ def main() -> int:
             continue
         topic, record = decoded[number]
         values = {k: v for k, v in message.items() if k not in ("sent", "message", "bytes", "sequence_number")}
-        wrong = [f"{k}: sent {v!r}, decoded {record.get(k)!r}" for k, v in values.items() if not same(v, str(record.get(k)))]
+        wrong = [f"{k}: sent {v!r}, decoded {record.get(k)!r}" for k, v in values.items() if not same(v, record.get(k))]
         if topic != f"BUOY/{message['message']}":
             wrong.insert(0, f"topic {topic}")
         if wrong:

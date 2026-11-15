@@ -42,13 +42,37 @@ goatnet.
 ## What you should see
 
 ```text
+[1] The stand-in goatnet: an authority, two slots and a router
+    A slot is a certificate common name with a write rule on <uuid>/** already in the router.
+    publisher slot d0d9ed2b5013cdcb04f987773f51d77f
+    reader slot    452c8b0316d99ff638e5ba7ecd58204d
+    $ fabric/make-certs.sh .run/4/tls d0d9ed2b5013cdcb04f987773f51d77f 452c8b0316d99ff638e5ba7ecd58204d
+    │ minted a root, a router certificate and 2 slot certificate(s) in /work/4/tls
+    $ docker run -d --name hb-router -p 127.0.0.1:17447:7447 -v .run/4/tls:/tls:ro eclipse/zenoh:1.9.0@sha256:1579… -c /tls/router.json5
+    the router accepts connections on 127.0.0.1:17447
+
 [2] What a goatnet's administrator hands over: the onboarding archive
-    │ NOTES.md
     │ ca-root.pem
     │ d0d9ed2b5013cdcb04f987773f51d77f-cert.pem
     │ d0d9ed2b5013cdcb04f987773f51d77f-key.pem
+    │ NOTES.md
     $ mind goat init --bundle .run/4/bundle --format harbour-buoy --site harbour-3 --instance tap-1 --out .run/4/goat.yml
     │ wrote /work/4/goat.yml; next: mind goat check --config /work/4/goat.yml
+    │ # first-bite configuration for one goatnet identity.
+    │ # Written by `mind goat init`; check it with `mind goat check`.
+    │ goatnet:
+    │   endpoints: ["tls/127.0.0.1:17447"]
+    │ identity:
+    │   certificate: "/work/4/bundle/d0d9ed2b5013cdcb04f987773f51d77f-cert.pem"
+    │   private_key: "/work/4/bundle/d0d9ed2b5013cdcb04f987773f51d77f-key.pem"
+    │   ca_certificate: "/work/4/bundle/ca-root.pem"
+    │   slot: "d0d9ed2b5013cdcb04f987773f51d77f"
+    │ publish:
+    │   format: harbour-buoy
+    │   site: harbour-3
+    │   instance: tap-1
+    │   health_interval_seconds: 2
+    health_interval_seconds was added by this step (default 30) so that the heartbeat can be read at once.
 
 [3] Check it offline: nothing is sent
     $ mind goat check --config .run/4/goat.yml --dictionary dictionaries/harbour-buoy
@@ -56,7 +80,7 @@ goatnet.
     │   ok    configuration      slot d0d9ed2b5013cdcb04f987773f51d77f
     │   ok    private key        /work/4/bundle/d0d9ed2b5013cdcb04f987773f51d77f-key.pem is readable by its owner only
     │   ok    certificate name   common name d0d9ed2b5013cdcb04f987773f51d77f
-    │   ok    certificate dates  valid until 2026-11-17 12:56 UTC (1 days from now)
+    │   ok    certificate dates  valid until 2026-11-17 19:55 UTC (1 days from now)
     │   ok    root certificate   /work/4/bundle/ca-root.pem verifies the certificate
     │
     │ router        tls/127.0.0.1:17447 (client mode, mutual TLS, host name verified)
@@ -68,17 +92,25 @@ goatnet.
     │
     │ would publish:
     │   announcement  d0d9ed2b5013cdcb04f987773f51d77f/services/shims/harbour-buoy/tap-1/announce  (at startup)
-    │   health        d0d9ed2b5013cdcb04f987773f51d77f/health/shims/harbour-buoy/tap-1  (every 30 s)
+    │   health        d0d9ed2b5013cdcb04f987773f51d77f/health/shims/harbour-buoy/tap-1  (every 2 s)
     │   records of dictionary harbour-buoy 1.0.0, each with its schema:
     │     BUOY/Position
     │       record  d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position
     │       schema  attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position
-    │     …
+    │     BUOY/Sea State
+    │       record  d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state
+    │       schema  attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state
+    │     BUOY/Status
+    │       record  d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status
+    │       schema  attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status
+    │
     │ all checks passed; nothing was sent
 
 [4] Confirm the router delivers what this certificate writes
+    A goat router drops a write its rules do not grant and reports nothing. The probe puts one
+    sample and waits for it on a second session.
     $ mind goat probe --config .run/4/goat.yml
-    │ delivered: a sample put on d0d9ed2b5013cdcb04f987773f51d77f/health/shims/harbour-buoy/tap-1 came back through the router after 251 ms
+    │ delivered: a sample put on d0d9ed2b5013cdcb04f987773f51d77f/health/shims/harbour-buoy/tap-1 came back through the router after 5 ms
 
 [5] A subscriber on the fabric: the released goat CLI, with the reader's certificate
     $ tools/fetch-goat-cli.py fabric/goat-cli.pin .run/4/goat
@@ -86,6 +118,12 @@ goatnet.
     $ goat sub 'd0d9ed2b5013cdcb04f987773f51d77f/telemetry/**' --uuid --count 9
 
 [6] The link of step 2, with first-bite publishing to the fabric
+    │ subscribers:
+    │   - name: fabric
+    │     subscriber_type: "goat"
+    │     zmq_url: "127.0.0.1"
+    │     zmq_port: 12000
+    │     topics: ["*"]
     $ GOAT_CONFIG_PATH=.run/4/goat.yml SUBSCRIBER_CONFIG_PATH=.run/4/subscribers.yml mind hblink0 --dictionary dictionaries/harbour-buoy --filter "udp port 47200"
     │ goat: joined tls/127.0.0.1:17447 as d0d9ed2b5013cdcb04f987773f51d77f; Zenoh session d0d9ed2b5013cdcb04f987773f51d77f
     │ goat: announced on d0d9ed2b5013cdcb04f987773f51d77f/services/shims/harbour-buoy/tap-1/announce and declared 3 schema(s) under attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/**
@@ -95,25 +133,39 @@ goatnet.
 
 [7] What the goat CLI received
     │ listening on `d0d9ed2b5013cdcb04f987773f51d77f/telemetry/**` via tls/127.0.0.1:17447 — stopping after 9 event(s). Ctrl-C to stop.
-    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status {"timestamp":{"secs_since_epoch":1794747409,…
-    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state {"timestamp":{"secs_since_epoch":1794747409,…
-    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position {"timestamp":{"secs_since_epoch":1794747409,…
-    │ …
-    │ done after 3s — 9 event(s) on `d0d9ed2b5013cdcb04f987773f51d77f/telemetry/**` (the requested 9)
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status {"timestamp":{"secs_since_epoch":1794772578,"nanos_since_epoch":692684000},"src_port":51233,
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state {"timestamp":{"secs_since_epoch":1794772578,"nanos_since_epoch":892884000},"src_port":512
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position {"timestamp":{"secs_since_epoch":1794772579,"nanos_since_epoch":93101000},"src_port":51233
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status {"timestamp":{"secs_since_epoch":1794772579,"nanos_since_epoch":293310000},"src_port":51233,
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state {"timestamp":{"secs_since_epoch":1794772579,"nanos_since_epoch":493514000},"src_port":512
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position {"timestamp":{"secs_since_epoch":1794772579,"nanos_since_epoch":693691000},"src_port":5123
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status {"timestamp":{"secs_since_epoch":1794772579,"nanos_since_epoch":893884000},"src_port":51233,
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state {"timestamp":{"secs_since_epoch":1794772580,"nanos_since_epoch":94073000},"src_port":5123
+    │ d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position {"timestamp":{"secs_since_epoch":1794772580,"nanos_since_epoch":294273000},"src_port":5123
+    │ done after 4s — 9 event(s) on `d0d9ed2b5013cdcb04f987773f51d77f/telemetry/**` (the requested 9)
 
 [8] The announcement, the heartbeat and the schema declarations, read from the router's storage
     $ mind goat watch 'd0d9ed2b5013cdcb04f987773f51d77f/services/**' --stored --payload --config .run/4/reader.yml
     │ d0d9ed2b5013cdcb04f987773f51d77f/services/shims/harbour-buoy/tap-1/announce  application/json  325 bytes
-    │ {"capabilities":["publish"],"class":"harbour-buoy","config_digest":"sha256:9d09…","instance":"tap-1","site":"harbour-3","translates_from":"harbour-buoy 1.0.0","translates_to":["d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/**"],"version":"0.1.0"}
+    │ {"capabilities":["publish"],"class":"harbour-buoy","config_digest":"sha256:9d095f3d9daaebef944eff7ba47428296f4908f3709441f5256492cbfe036833","instance":"tap-1","site":"harbour-3","translates_from":"harbour-buoy 1.0.0","translates_to":["d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/**"],"version":"1.1.0"}
+    │ 1 sample(s) on d0d9ed2b5013cdcb04f987773f51d77f/services/**
     $ mind goat watch 'd0d9ed2b5013cdcb04f987773f51d77f/health/**' --stored --payload --config .run/4/reader.yml
     │ d0d9ed2b5013cdcb04f987773f51d77f/health/shims/harbour-buoy/tap-1  application/json  252 bytes
-    │ {"class":"harbour-buoy","instance":"tap-1","records_failed":0,"records_not_decoded":0,"records_published":9,"site":"harbour-3","started":"…","status":"ok","time":"…","version":"0.1.0"}
+    │ {"class":"harbour-buoy","instance":"tap-1","records_failed":0,"records_not_decoded":0,"records_published":9,"site":"harbour-3","started":"2026-11-15T19:56:17.720553322+00:00","status":"ok","time":"2026-11-15T19:56:25.826715382+00:00","version":"1.1.0"}
+    │ 1 sample(s) on d0d9ed2b5013cdcb04f987773f51d77f/health/**
     $ mind goat watch 'attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/**' --stored --config .run/4/reader.yml
-    │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position  application/json  4104 bytes
-    │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status  application/json  3995 bytes
-    │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state  application/json  4137 bytes
+    │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/sea_state  application/json  4315 bytes
+    │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/status  application/json  4173 bytes
+    │ attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/telemetry/harbour-buoy/harbour-3/buoy/position  application/json  4282 bytes
+    │ 3 sample(s) on attest/schema/d0d9ed2b5013cdcb04f987773f51d77f/**
 
-[9] Verify
+[9] Stop first-bite: the sink delivers what was published, then mind exits
+    On a stop signal mind stops capturing, gives each sink up to --drain-seconds (default 30) to deliver, and reports per sink.
+    $ docker stop hb-tap
+    │ sink fabric: 9 delivered, 0 failed, 0 abandoned
+    │ done: 9 frames, 9 records, 9 decoded, 0 not UDP or TCP, 0 malformed
+
+[10] Verify
     ✓ offline, the certificate, its name, its dates and its root are in order
     ✓ check lists the key each message will be published on
     ✓ the router delivers this certificate's writes
@@ -124,7 +176,10 @@ goatnet.
     ✓ the goat CLI received a Position record
     ✓ the announcement is stored under the slot
     ✓ the heartbeat counts the records published
+    ✓ on stopping, the goat sink had delivered every record
     ✓ a schema is declared for each record key
+
+✓ step complete — every assertion held.
 ```
 
 ## What to read in that output
