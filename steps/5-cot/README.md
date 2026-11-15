@@ -38,7 +38,7 @@ bin/hello-bite 5-cot
 [3] Replay the capture with the transform on, and read the event socket
     $ tools/zmq-sub.py tcp://127.0.0.1:12001 --count 1 --field cot_xml_string &
     $ SUBPUB_CONFIG_PATH=config/subpubs.cot.yml mind --pcap-file .run/5-buoy.pcap --dictionary dictionaries/harbour-buoy --activate-subpubs
-    │ BUOY/Position/CoT  <event version="2.0" uid="7" type="a-n-S-X" time="2026-11-15T12:12:23.813453377+00:00" start="2026-11-15T12:12:23.813453377+00:00" stale="2026-11-15T12:15:23.813453377+00:00" how="m-g"><point lat="44.501234499999995" lon="-30.254320999999997" hae="-1.5" ce="9999999" le="9999999"/><detail/></event>
+    │ BUOY/Position/CoT  <event version="2.0" uid="7" type="a-n-S-X" time="2026-11-15T12:56:59.247910689+00:00" start="2026-11-15T12:56:59.247910689+00:00" stale="2026-11-15T12:59:59.247910689+00:00" how="m-g"><point lat="44.501234499999995" lon="-30.254320999999997" hae="-1.5" ce="9999999" le="9999999"/><detail/></event>
     │ done: 3 frames, 3 records, 3 decoded, 0 not UDP or TCP, 0 malformed
 
 [4] Verify

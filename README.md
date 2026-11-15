@@ -1,4 +1,4 @@
-# hello-galaxy: first-bite
+# hello-galaxy-first-bite
 
 **Two systems exchange binary messages in a format of their own, and neither
 can be changed. How do you get what they say onto a goatnet? Five runnable
@@ -59,12 +59,15 @@ bin/hello-bite all              # the five steps in order
 `.run/`. Steps 1, 2, 3 and 5 also run on the default build,
 `bin/hello-bite build`.
 
+CI builds the image with the goat feature and runs the five steps on a
+GitHub-hosted Ubuntu runner; `--live` of step 1 is run by hand only.
+
 | Measured on one machine (16 cores, `-j 8`, Docker 29.6) | |
 |---|---|
-| `bin/hello-bite build`, from nothing: base images pulled, first-bite cloned and compiled | 3 min 22 s |
-| `bin/hello-bite build --goat`, base images cached: first-bite compiled with the Zenoh client | 3 min 21 s |
+| `bin/hello-bite build`, base images cached: first-bite cloned and compiled | 2 min 2 s |
+| `bin/hello-bite build --goat`, base images cached: first-bite compiled with the Zenoh client | 2 min 18 s |
 | image size | 54 MB default, 59 MB with goat |
-| `bin/hello-bite all` | 1 min 17 s |
+| `bin/hello-bite all`, router image and `goat` CLI already downloaded | 42 s |
 
 ### On macOS
 
@@ -79,7 +82,7 @@ first-bite itself builds and captures on macOS; its
 
 | What | Pin | Change it in |
 |---|---|---|
-| first-bite | commit `b7bc25898a28bc449dd11bb1876a9645bde43cb3` of its public `main`; no release is tagged yet | [`FIRST_BITE_REF`](FIRST_BITE_REF): put a release tag's commit there when one exists |
+| first-bite | commit `095d8229452aaafae76b92ca9f55d54cad8e14d6`, which is the release candidate `v1.0.1-rc.1` | [`FIRST_BITE_REF`](FIRST_BITE_REF) holds the commit, not the tag name, so a moved tag cannot change what is built; put the commit of the next release there |
 | Build and runtime base images | `rust:1.100.0-trixie` and `debian:trixie-slim` by digest, the two first-bite's own Dockerfile uses | [`image/Dockerfile`](image/Dockerfile) |
 | Zenoh router | `eclipse/zenoh:1.9.0` by digest, the image goat runs and hello-galaxy-zagros-pod pins | `HB_ROUTER_IMAGE` in [`lib/hello-bite.sh`](lib/hello-bite.sh) |
 | `goat` CLI | release `goat-cli-v0.5.14` of goatcore, by SHA-256 | [`fabric/goat-cli.pin`](fabric/goat-cli.pin) |
@@ -135,7 +138,7 @@ FINDINGS.md               behaviours of first-bite and the goat CLI a script dri
 | step 5 | `cotify/README.md`, `flow/config/subpubs.example.yml` | |
 | `docs/00-which-tool.md` | `docs/related-projects.md` | |
 
-Part of the hello-galaxy family of runnable goat demos.
+One of the Hello Galaxy series of runnable goat demonstrations.
 
 ## Licence
 
