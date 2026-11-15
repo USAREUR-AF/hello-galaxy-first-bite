@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# hello-bite — build the first-bite image and run a step.
+#
+#   bin/hello-bite build [--goat]     build the image every step runs
+#   bin/hello-bite <step> [args...]   run one step
+#   bin/hello-bite all                run every step in order
+#   bin/hello-bite list
+#   bin/hello-bite clean              remove .run/, the containers, the network and the images
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+STEPS="$ROOT/steps"
+usage() {
+  cat <<USAGE
+hello-galaxy: first-bite — decode binary messages off a wire and put them on a goat fabric
+
+usage:
+  bin/hello-bite build [--goat]
+  bin/hello-bite <step> [args...]
+  bin/hello-bite all
+  bin/hello-bite list
+  bin/hello-bite clean
+
+steps:
+USAGE
+  for d in "$STEPS"/*/; do
+    name="$(basename "$d")"; title="$(sed -n 's/^# *//p' "$d/README.md" 2>/dev/null | head -1)"
+    printf '  %-14s %s\n' "$name" "$title"
+  done
+  cat <<USAGE
+
+build:    steps 1, 2, 3 and 5 run on the default build; step 4 needs --goat,
+          and the --goat image runs every step.
+USAGE
+}
+resolve() {
+  local q="$1" m
+  [ -d "$STEPS/$q" ] && { echo "$q"; return 0; }
+  for d in "$STEPS"/*/; do
+    m="$(basename "$d")"
+    case "$m" in "$q"-*|*"$q"*) echo "$m"; return 0 ;; esac
+  done
+  return 1
+}
+build() {
+  local engine="${CONTAINER_ENGINE:-docker}" ref tag features=""
+  ref="$(tr -d '[:space:]' < "$ROOT/FIRST_BITE_REF")"
+  tag="${HB_IMAGE_BASE:-hello-galaxy-first-bite}:${ref:0:12}"
+  if [ "${1:-}" = --goat ]; then features="mind/goat"; tag="$tag-goat"; fi
+  echo "building $tag from first-bite $ref${features:+ with the goat feature}"
+  "$engine" build -f "$ROOT/image/Dockerfile" --build-arg "FIRST_BITE_REF=$ref" \
+    --build-arg "FEATURES=$features" --build-arg "JOBS=${HB_JOBS:-8}" -t "$tag" "$ROOT/image"
+  echo "built $tag"
+}
+clean() {
+  local engine="${CONTAINER_ENGINE:-docker}" ref base
+  ref="$(tr -d '[:space:]' < "$ROOT/FIRST_BITE_REF")"
+  base="${HB_IMAGE_BASE:-hello-galaxy-first-bite}:${ref:0:12}"
+  for name in hb-shore hb-buoy hb-tap hb-sub hb-router hb-goat-sub hb-watch; do
+    "$engine" rm -f "$name" >/dev/null 2>&1 || true
+  done
+  "$engine" network rm hb-link >/dev/null 2>&1 || true
+  "$engine" rmi "$base" "$base-goat" >/dev/null 2>&1 || true
+  rm -rf "$ROOT/.run"
+  echo "removed .run/, the hb-* containers, the hb-link network and the images $base and $base-goat"
+}
+[ "$#" -eq 0 ] && { usage; exit 0; }
+case "$1" in
+  -h|--help|help) usage; exit 0 ;;
+  list) for d in "$STEPS"/*/; do basename "$d"; done; exit 0 ;;
+  build) shift; build "$@"; exit 0 ;;
+  clean) clean; exit 0 ;;
+  all) shift; rc=0; for d in "$STEPS"/*/; do bash "$d/run.sh" "$@" || rc=1; done; exit $rc ;;
+esac
+name="$(resolve "$1")" || { echo "unknown step: $1" >&2; usage >&2; exit 2; }
+shift
+exec bash "$STEPS/$name/run.sh" "$@"
