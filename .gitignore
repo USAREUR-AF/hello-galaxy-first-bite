@@ -1,0 +1,16 @@
+# runtime state written by the steps — never committed
+.run/
+*.log
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# captures are generated, never committed
+*.pcap
+*.pcapng
+
+# os noise
+.DS_Store
