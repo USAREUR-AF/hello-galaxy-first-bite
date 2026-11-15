@@ -1,0 +1,67 @@
+// The stand-in for a goatnet's Zenoh router: the stock eclipse/zenoh image with
+// the shape of configuration goat renders for a slot-pool router (goatcore,
+// ops/ansible/roles/goat-zenoh/templates/config.json5.j2), cut down to a pool
+// of two slots and the built-in memory volume in place of rocksdb.
+//
+// What it keeps of a goat router, because first-bite's goat support is written
+// against these: a TLS listener that requires a client certificate of the
+// goatnet's authority; access control that denies by default; one write rule
+// per certificate common name, on <uuid>/** and attest/schema/**; reading open
+// to every authenticated peer; storage of each slot's keys, so that an
+// announcement and a schema can be read after they were put.
+//
+// steps/4-fabric/run.sh replaces __PUBLISHER__ and __READER__ with the two
+// slot UUIDs.
+{
+  mode: "router",
+  listen: { endpoints: ["tls/0.0.0.0:7447"] },
+  scouting: { multicast: { enabled: false } },
+  transport: {
+    link: {
+      tls: {
+        listen_certificate: "/tls/router-cert.pem",
+        listen_private_key: "/tls/router-key.pem",
+        root_ca_certificate: "/tls/ca-root.pem",
+        enable_mtls: true,
+      },
+    },
+  },
+  plugins_loading: { enabled: true, search_dirs: ["/"] },
+  plugins: {
+    storage_manager: {
+      volumes: { memory: {} },
+      storages: {
+        attest_schema: { key_expr: "attest/schema/**", volume: "memory" },
+        "slot___PUBLISHER__": { key_expr: "__PUBLISHER__/**", volume: "memory" },
+        "slot___READER__": { key_expr: "__READER__/**", volume: "memory" },
+      },
+    },
+  },
+  access_control: {
+    enabled: true,
+    default_permission: "deny",
+    rules: [
+      { id: "trial-peer-r-all",
+        messages: ["declare_subscriber", "query", "declare_queryable", "reply", "declare_liveliness_subscriber", "liveliness_query"],
+        flows: ["egress", "ingress"], permission: "allow", key_exprs: ["**", "**/@adv/**"] },
+      { id: "trial-peer-deliver-all", messages: ["put", "delete", "liveliness_token"], flows: ["egress"],
+        permission: "allow", key_exprs: ["**", "**/@adv/**"] },
+      { id: "trial-peer-w-attest-schema", messages: ["put", "delete"], flows: ["ingress"],
+        permission: "allow", key_exprs: ["attest/schema/**"] },
+      { id: "slot-w-__PUBLISHER__", messages: ["put", "delete", "liveliness_token"], flows: ["ingress"],
+        permission: "allow", key_exprs: ["__PUBLISHER__/**", "volatile/__PUBLISHER__/**", "__PUBLISHER__/**/@adv/**"] },
+      { id: "slot-w-__READER__", messages: ["put", "delete", "liveliness_token"], flows: ["ingress"],
+        permission: "allow", key_exprs: ["__READER__/**", "volatile/__READER__/**", "__READER__/**/@adv/**"] },
+    ],
+    subjects: [
+      { id: "trial-peer-read", link_protocols: ["tls"] },
+      { id: "slot-__PUBLISHER__", cert_common_names: ["__PUBLISHER__"] },
+      { id: "slot-__READER__", cert_common_names: ["__READER__"] },
+    ],
+    policies: [
+      { rules: ["trial-peer-r-all", "trial-peer-deliver-all"], subjects: ["trial-peer-read"] },
+      { rules: ["slot-w-__PUBLISHER__", "trial-peer-w-attest-schema"], subjects: ["slot-__PUBLISHER__"] },
+      { rules: ["slot-w-__READER__", "trial-peer-w-attest-schema"], subjects: ["slot-__READER__"] },
+    ],
+  },
+}

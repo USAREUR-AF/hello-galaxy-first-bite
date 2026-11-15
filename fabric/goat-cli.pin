@@ -1,0 +1,6 @@
+# The released goat CLI that step 4 subscribes with, and the SHA-256 of each
+# binary as published beside it (goat-linux-<arch>.sha256). The release is the
+# one hello-galaxy-zagros-pod pins. Change the three lines together.
+release goat-cli-v0.5.14
+sha256 goat-linux-amd64 d47966d9fc3b15e3242282e2dfb6e35b68fd848eb72cf80a990a1804212fe841
+sha256 goat-linux-arm64 63d306df20e787e4eaf76aaf482fb56e2fb53b19ea6fb28ae61a895f8a102283

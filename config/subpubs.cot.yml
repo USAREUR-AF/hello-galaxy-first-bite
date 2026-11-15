@@ -1,0 +1,27 @@
+# The Cursor-on-Target transform of step 5: Position records of the BUOY
+# interface become CoT events on a second ZeroMQ socket. Read by mind when
+# SUBPUB_CONFIG_PATH names this file and --activate-subpubs is given.
+# first-bite's flow/config/subpubs.example.yml explains every key.
+subpubs:
+  - name: Position2CoT
+    subscriber:
+      name: "positions"
+      subscriber_type: "transformer"
+      subtype: "cot"
+      zmq_url: "127.0.0.1"
+      zmq_port: 12000
+      topics:
+        - "BUOY/Position"
+      cot:
+        uid: [buoy_number]
+        type:
+          value: "a-n-S-X"
+        position:
+          geodetic: [latitude, longitude, antenna_height]
+        stale_minutes: 3
+    publisher:
+      name: "cot"
+      publisher_type: PUB
+      address: "tcp://127.0.0.1:12001"
+      topic: "subsystem/message_type"
+      topic_suffix: "CoT"
