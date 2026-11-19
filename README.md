@@ -1,5 +1,10 @@
 # hello-galaxy-first-bite
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/tap-to-fabric-dark.svg">
+  <img src="docs/figures/tap-to-fabric-light.svg" width="760" alt="A simulated harbour buoy sends three binary messages over UDP port 47200 to its shore station, which receives all 9 datagrams. first-bite reads a copy of every frame off the link, decodes it with the harbour-buoy dictionary built from the interface document HB-ICD-001-A, and publishes one JSON record per message: on ZeroMQ, on a goat fabric where the goat CLI receives them, and as a Cursor-on-Target event.">
+</picture>
+
 **Two systems exchange binary messages in a format of their own, and neither
 can be changed. How do you get what they say onto a goatnet? Five runnable
 steps: decode a capture, tap a link, turn the interface document into a
